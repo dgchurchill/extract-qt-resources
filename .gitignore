@@ -1,0 +1,7 @@
+.fake/
+.paket/paket.exe
+*~
+bin
+obj
+build/
+packages/
