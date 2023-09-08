@@ -1,7 +1,9 @@
 {
-  "image": "mcr.microsoft.com/devcontainers/universal:2",
-  "features": {},
-  "customizations": {
+	"image": "mcr.microsoft.com/devcontainers/cpp:ubuntu-22.04",
+	"features": {
+		"ghcr.io/devcontainers/features/dotnet:1": {}
+	},
+	"customizations": {
 		"vscode": {
 			"extensions": [
 				"Ionide.Ionide-fsharp"
