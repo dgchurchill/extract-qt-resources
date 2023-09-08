@@ -1,6 +1,11 @@
 {
   "image": "mcr.microsoft.com/devcontainers/universal:2",
-  "features": {
-    "ghcr.io/devcontainers/features/dotnet:1": {}
-  }
+  "features": {},
+  "customizations": {
+		"vscode": {
+			"extensions": [
+				"Ionide.Ionide-fsharp"
+			]
+		}
+	}
 }
