@@ -1,5 +1,7 @@
 ﻿module ExtractQtResources
 
+// Qt resources are compiled by rcc: https://github.com/qt/qtbase/blob/dev/src/tools/rcc/rcc.cpp
+
 open System
 open System.IO
 
@@ -86,8 +88,8 @@ let parseWord : Parser<uint16> =
 
 (* Tree:
 
-Array of 14 byte structs.
-Nodes are at node_id * 14.
+Array of 14 byte structs (format version 1) or 22 byte structs (format version >= 2).
+Nodes are at node_id * sizeof(struct).  i.e. node_id * 14 or node_id * 22.
 Root node is has node_id 0.
 
 If flags has directory bit:
@@ -97,15 +99,18 @@ If flags has directory bit:
 |      4 |    2 | flags (1 = compressed, 2 = directory)                                                              |
 |      6 |    4 | count of children                                                                                  |
 |     10 |    4 | node id of first child (rest of children are sequential from this number, ordered by hash of name) |
+|     14 |    8 | last modified timestamp (format version >= 2)                                                       |
+
 
 Otherwise:
-| offset | size | description                             |
-|--------+------+-----------------------------------------|
-|      0 |    4 | offset of entry in `names` (big endian) |
-|      4 |    2 | flags (1 = compressed, 2 = directory)   |
-|      6 |    2 | country                                 |
-|      8 |    2 | language                                |
-|     10 |    4 | offset of entry in payload              |
+| offset | size | description                                    |
+|--------+------+------------------------------------------------|
+|      0 |    4 | offset of entry in `names` (big endian)        |
+|      4 |    2 | flags (1 = compressed, 2 = directory)          |
+|      6 |    2 | country                                        |
+|      8 |    2 | language                                       |
+|     10 |    4 | offset of entry in payload                     |
+|     14 |    8 | last modified timestamp (format version >= 2)  |
 
 *)
 
