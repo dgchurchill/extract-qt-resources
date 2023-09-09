@@ -1,73 +1,11 @@
-﻿module ExtractQtResources
-
-// Qt resources are compiled by rcc: https://github.com/qt/qtbase/blob/dev/src/tools/rcc/rcc.cpp
+﻿module ExtractQtResources.Program
 
 open System
 open System.IO
+open ExtractQtResources.Parsing
+open ExtractQtResources.Parsing.Parser
 
-type Buffer = {
-    Array : byte []
-    Offset : int
-}
-
-type Parser<'a> = Buffer -> ('a * Buffer) option
-
-let unit (a : 'a) : Parser<'a> =
-    fun buffer -> Some (a, buffer)
-
-let fail : Parser<'a> =
-    fun buffer -> None
-
-let currentOffset : Parser<int> =
-    fun buffer -> Some (buffer.Offset, buffer)
-
-let skip (n : int) : Parser<unit> =
-    fun buffer -> Some ((), { buffer with Offset = buffer.Offset + n })
-
-let rewind (n : int) : Parser<unit> =
-    skip -n
-
-let bind (ap : Parser<'a>) (f : 'a -> Parser<'b>) : Parser<'b> =
-    ap >> Option.bind (fun (a, buffer1) -> f a buffer1)
-
-type ParserBuilder() =
-    member x.Bind(comp, func) = bind comp func
-    member x.Return(value) = unit value
-    member x.ReturnFrom(value) = value
-    member x.Delay(func) = fun buffer -> func () buffer
-
-let parser =
-    ParserBuilder()
-
-let rec repeat n (p : Parser<'a>) : Parser<'a list> =
-    parser {
-        if n > 0 then
-            let! a = p
-            let! rest = repeat (n - 1) p
-            return a :: rest
-        else
-            return []
-    }
-
-let rec scanFor (p : Parser<'a>) (test : 'a -> bool) : Parser<'a> =
-    let rec tryScan (buffer : Buffer) =
-        match p buffer with
-        | Some (a, _) as result when test a ->
-            result
-        | _ ->
-            if buffer.Offset + 1 < Array.length buffer.Array then
-                tryScan { buffer with Offset = buffer.Offset + 1}
-            else
-                None
-
-    tryScan
-
-let parseWith (f : byte[] -> int -> int -> 'a) (n : int) : Parser<'a> =
-    fun (buffer : Buffer) ->
-        if buffer.Offset + n > buffer.Array.Length then
-            None
-        else
-            Some (f buffer.Array buffer.Offset n, { buffer with Offset = buffer.Offset + n })
+// Qt resources are compiled by rcc: https://github.com/qt/qtbase/blob/dev/src/tools/rcc/rcc.cpp
 
 (* Numbers are big-endian *)
 let parseDoubleWord : Parser<uint32> =
@@ -144,7 +82,7 @@ type TreeNode =
     | Directory of name : string * children : TreeNode list
     | File of name : string * fileOffset : int * length : int
 
-let parseTreeNode : Parser<RawTreeNode> =
+let parseTreeNode (withTimestamp : bool) : Parser<RawTreeNode> =
     parser {
         let! nameOffset = parseDoubleWord
         let! rawFlags = parseWord
@@ -156,11 +94,19 @@ let parseTreeNode : Parser<RawTreeNode> =
                 if (flags &&& NodeFlag.Directory) = NodeFlag.Directory then
                     let! childCount = parseDoubleWord
                     let! firstChildId = parseDoubleWord
+                    if withTimestamp then
+                        let! _ = parseDoubleWord
+                        let! _ = parseDoubleWord
+                        ()
                     return RawDirectory { ChildCount = childCount; FirstChildId = firstChildId }
                 else
                     let! country = parseWord
                     let! language = parseWord
                     let! payloadOffset = parseDoubleWord
+                    if withTimestamp then
+                        let! _ = parseDoubleWord
+                        let! _ = parseDoubleWord
+                        ()
                     return RawFile { Country = country; Language = language; PayloadOffset = payloadOffset }
             }
 
@@ -171,7 +117,7 @@ let parseTreeNode : Parser<RawTreeNode> =
         }
     }
 
-let parseTree : Parser<RawTreeNode list> =
+let parseTree (withTimestamp : bool) : Parser<RawTreeNode list> =
     let getMaximumIndex (treeNodes : RawTreeNode list) =
         treeNodes
         |> List.choose (fun node ->
@@ -189,7 +135,7 @@ let parseTree : Parser<RawTreeNode list> =
         if maximumIndex > currentMaximumIndex then
             parser {
                 let extraCount = int (maximumIndex - currentMaximumIndex)
-                let! extra = repeat extraCount parseTreeNode
+                let! extra = repeat extraCount (parseTreeNode withTimestamp)
                 let result = List.append parsed extra
                 return! parseMore result
             }
@@ -197,8 +143,8 @@ let parseTree : Parser<RawTreeNode list> =
             unit parsed
             
     parser {
-        let! firstNode = parseTreeNode
-        if firstNode.NameOffset = 0u && firstNode.Data = RawDirectory { ChildCount = 1u; FirstChildId = 1u } then
+        let! firstNode = (parseTreeNode withTimestamp)
+        if firstNode.NameOffset = 0u && (match firstNode.Data with RawDirectory x -> x.FirstChildId = 1u | _ -> false) then
             return! parseMore [ firstNode ]
         else
             return! fail
@@ -322,9 +268,14 @@ let parsePayloadEntries (tree : RawTreeNode list) : Parser<PayloadEntry list> =
 
 let parseResources : Parser<TreeNode> =
     parser {
-        let! rawTreeNodes = parseTree
+        let! rawTreeNodes = parseTree true
+        printfn "found tree: %A" rawTreeNodes
+        do! seek 0
         let! names = parseNameEntries rawTreeNodes
+        printfn "found names: %A" names
+        do! seek 0
         let! payloads = parsePayloadEntries rawTreeNodes
+        printfn "found payloads: %A" payloads
 
         let nameOffsets =
             rawTreeNodes

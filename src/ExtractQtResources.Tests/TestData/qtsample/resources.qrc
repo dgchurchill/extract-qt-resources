@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>README.md</file>
+        <file>main.cpp</file>
     </qresource>
 </RCC>
