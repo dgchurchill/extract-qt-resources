@@ -1,8 +1,4 @@
-.fake/
-.paket/paket.exe
 *~
-bin
-obj
+bin/
+obj/
 build/
-packages/
-deploy/

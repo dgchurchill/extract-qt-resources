@@ -1,12 +1,12 @@
 # Extract Qt Resources
 
-Extract resources from a Qt binary. Requires Mono or .NET.
+Extract resources from a Qt binary.
 
 ## Examples
 
 ### List resources
 ```
-$ mono ExtractQtResources.exe list Synergy
+$ ExtractQtResources.exe list Synergy
 res/
 res/res/
 res/res/lang/
@@ -24,7 +24,7 @@ Resources will be written to the working directory.
 so check with `list` first that the file / directory names look safe.
 
 ```
-$ mono ExtractQtResources.exe extract Synergy
+$ ExtractQtResources.exe extract Synergy
 res/
 res/res/
 res/res/lang/
