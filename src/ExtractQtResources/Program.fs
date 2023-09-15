@@ -119,6 +119,7 @@ let parseTreeNode (withTimestamp : bool) : Parser<RawTreeNode> =
 
 let parseTree (withTimestamp : bool) : Parser<RawTreeNode list> =
     let getMaximumIndex (treeNodes : RawTreeNode list) =
+        // printfn "getMaximumIndex: %A" treeNodes
         treeNodes
         |> List.choose (fun node ->
             match node.Data with
@@ -135,7 +136,14 @@ let parseTree (withTimestamp : bool) : Parser<RawTreeNode list> =
         if maximumIndex > currentMaximumIndex then
             parser {
                 let extraCount = int (maximumIndex - currentMaximumIndex)
+                // deal with negatives from overflow if we hit a possible tree node that has a crazy child count
+                if extraCount <= 0 then
+                    return! fail
+                // printfn "currentMaximumIndex: %i" currentMaximumIndex
+                // printfn "maximumIndex: %i" maximumIndex
+                // printfn "extraCount: %i" extraCount
                 let! extra = repeat extraCount (parseTreeNode withTimestamp)
+                // printfn "extra: %A" extra
                 let result = List.append parsed extra
                 return! parseMore result
             }
@@ -183,6 +191,9 @@ let parseNameEntry : Parser<NameEntry> =
             Name = name
         }
     }
+
+let parseXX (offsets : uint32 list) =
+    ()
 
 let parseNameEntries (tree : RawTreeNode list) : Parser<NameEntry list> =
     parser {
