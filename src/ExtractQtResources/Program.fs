@@ -1,4 +1,4 @@
-﻿module ExtractQtResources.Program
+module ExtractQtResources.Program
 
 open System
 open System.IO
@@ -37,7 +37,7 @@ If flags has directory bit:
 |      4 |    2 | flags (1 = compressed, 2 = directory)                                                              |
 |      6 |    4 | count of children                                                                                  |
 |     10 |    4 | node id of first child (rest of children are sequential from this number, ordered by hash of name) |
-|     14 |    8 | last modified timestamp (format version >= 2)                                                       |
+|     14 |    8 | last modified timestamp (format version >= 2)                                                      |
 
 
 Otherwise:
