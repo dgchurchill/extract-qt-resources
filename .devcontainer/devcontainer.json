@@ -1,0 +1,14 @@
+{
+	"image": "mcr.microsoft.com/devcontainers/cpp:ubuntu-22.04",
+	"features": {
+		"ghcr.io/devcontainers/features/dotnet:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"Ionide.Ionide-fsharp"
+			]
+		}
+	},
+	"postCreateCommand": "apt-get update && export DEBIAN_FRONTEND=noninteractive && apt-get -y install --no-install-recommends qt6-base-dev"
+}
